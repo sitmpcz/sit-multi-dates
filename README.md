@@ -1,2 +1,3 @@
-# sit-multi-dates
-Wordpress plugin dates fields
+# SIT Multi Dates
+
+### Wordpress plugin

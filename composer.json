@@ -1,0 +1,19 @@
+{
+  "name": "web/sit-multi-dates",
+  "description": "Simple Multiple Event Dates Field",
+  "keywords": ["wordpress", "plugin", "rewrite"],
+  "homepage": "https://sitmp.cz",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Jaroslav Dvořák",
+      "email": "dvorakja@plzen.eu",
+      "homepage": "https://sitmp.cz"
+    }
+  ],
+  "type": "wordpress-plugin",
+  "require": {
+    "php": "^5.6 || ^7.0 || ^8.0",
+    "composer/installers": "~2.0"
+  }
+}

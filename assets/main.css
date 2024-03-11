@@ -1,0 +1,85 @@
+.sitmd-sortable {
+
+}
+.sitmd-sortable__item {
+    background: #fff;
+    position: relative;
+    padding: 4px 0;
+}
+.sitmd-sortable__handle {
+    padding-left: 14px;
+    padding-right: 30px;
+    border-radius: 4px;
+}
+.sitmd-sortable__handle input {
+    position: relative;
+    z-index: 2;
+}
+.sitmd-sortable__handle::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 16px;
+    height: 100%;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    background: #eee url(drag-handle.svg) center no-repeat;
+    background-size: contain;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.sitmd-add-wrapper {
+    display: flex;
+    justify-content: center;
+    background: #eee;
+    padding: 4px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+.sitmd-add {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: #2271b1;
+    display: flex;
+    align-self: flex-end;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.sitmd-add::before {
+    content: "";
+    display: block;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(to bottom, transparent 40%, #fff 40%, #fff 60%, transparent 60%), linear-gradient(to right, transparent 40%, #fff 40%, #fff 60%, transparent 60%);
+}
+.sitmd-add span {
+    display: none;
+}
+
+.sitmd-remove {
+    position: absolute;
+    right: 0;
+    top: 5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1px solid #2c3338;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sitmd-remove::before {
+    content: "";
+    display: block;
+    width: 8px;
+    height: 2px;
+    background: #000;
+}
+.sitmd-remove span {
+    display: none;
+}
