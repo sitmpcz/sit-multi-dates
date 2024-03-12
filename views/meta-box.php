@@ -3,7 +3,7 @@
         <label for="sitmd_from"><b>Datum od (nebo den konání)</b></label>
 	</div>
 	<div class="acf-input">
-		<input type="date" pattern="\d{4}-\d{2}-\d{2}" name="sitmd_from" id="sitmd_from" class="input" value="<?php echo $sitmd_from; ?>">
+		<input type="date" pattern="\d{4}-\d{2}-\d{2}" name="sitmd_from" id="sitmd_from" class="input" value="<?php echo $sitmd_from; ?>" required>
 	</div>
 </div>
 <div class="acf-field">
@@ -11,7 +11,7 @@
         <label for="sitmd_to"><b>Datum do</b></label>
     </div>
     <div class="acf-input">
-        <input type="date" pattern="\d{4}-\d{2}-\d{2}" name="sitmd_to" id="sitmd_to" class="input" value="<?php echo $sitmd_to; ?>">
+        <input type="date" pattern="\d{4}-\d{2}-\d{2}" name="sitmd_to" id="sitmd_to" class="input" value="<?php echo $sitmd_to; ?>" required>
     </div>
 </div>
 <div class="acf-field">
