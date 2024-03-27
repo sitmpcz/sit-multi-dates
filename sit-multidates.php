@@ -16,10 +16,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Setup
+if ( !function_exists('SitMultidatesPluginSetup' ) ) {
+
+    add_action( 'init', 'SitMultidatesPluginSetup' );
+
+    register_activation_hook( __FILE__, 'SitMultidatesPluginSetup' );
+
+    function SitMultidatesPluginSetup() {
+
+        global $wpdb;
+
+        $sql = "CREATE TABLE IF NOT EXISTS `{$wpdb->prefix}sit_multidates` ( 
+						`date_id` INT NOT NULL AUTO_INCREMENT,
+						`post_id` INT(11) NOT NULL,
+						`timestamp` TIMESTAMP NOT NULL,
+						PRIMARY KEY  (`date_id`)
+					);";
+
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        dbDelta( $sql );
+
+    }
+
+}
+
 // Cesta k pluginu
 if ( !defined('SITMD_PLUGIN_PATH') ) {
 	define( 'SITMD_PLUGIN_PATH', plugin_dir_url( __FILE__ ) );
 }
+
+// Init
+add_action( 'init', function() {
+
+} );
 
 // Vendor JS
 add_action( 'admin_enqueue_scripts', function() {
