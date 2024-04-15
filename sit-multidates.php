@@ -13,7 +13,7 @@ Domain Path: /lang/
 */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 // Setup
@@ -27,15 +27,23 @@ if ( !function_exists('SitMultidatesPluginSetup' ) ) {
 
         global $wpdb;
 
-        $sql = "CREATE TABLE IF NOT EXISTS `{$wpdb->prefix}sit_multidates` ( 
-						`date_id` INT NOT NULL AUTO_INCREMENT,
-						`post_id` INT(11) NOT NULL,
-						`timestamp` TIMESTAMP NOT NULL,
-						PRIMARY KEY  (`date_id`)
-					);";
+        $table_name = $wpdb->prefix . 'sit_multidates';
 
-        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        dbDelta( $sql );
+        if ( $wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name ) {
+
+            $charset_collate = $wpdb->get_charset_collate();
+
+            $sql = "CREATE TABLE $table_name (
+		        date_id mediumint(9) NOT NULL AUTO_INCREMENT,
+		        post_id mediumint(9) NOT NULL,
+                date_time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+                PRIMARY KEY (date_id)
+           	) $charset_collate;";
+
+            require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+            dbDelta( $sql );
+
+        }
 
     }
 
@@ -43,132 +51,136 @@ if ( !function_exists('SitMultidatesPluginSetup' ) ) {
 
 // Cesta k pluginu
 if ( !defined('SITMD_PLUGIN_PATH') ) {
-	define( 'SITMD_PLUGIN_PATH', plugin_dir_url( __FILE__ ) );
+    define( 'SITMD_PLUGIN_PATH', plugin_dir_url( __FILE__ ) );
 }
-
-// Init
-add_action( 'init', function() {
-
-} );
 
 // Vendor JS
 add_action( 'admin_enqueue_scripts', function() {
-	wp_enqueue_style( 'sitmd', SITMD_PLUGIN_PATH  . 'assets/main.css', [], filemtime( SITMD_PLUGIN_PATH  . 'assets/main.css' ) );
-	wp_enqueue_script('sitmd-vendor', SITMD_PLUGIN_PATH . 'assets/vendor.min.js', '', '', true);
-	wp_enqueue_script('sitmd', SITMD_PLUGIN_PATH . 'assets/core.js', 'jquery', filemtime( SITMD_PLUGIN_PATH . 'assets/core.js' ), true);
+    wp_enqueue_style( 'sitmd', SITMD_PLUGIN_PATH  . 'assets/main.css', [], filemtime( SITMD_PLUGIN_PATH  . 'assets/main.css' ) );
+    wp_enqueue_script('sitmd-vendor', SITMD_PLUGIN_PATH . 'assets/vendor.min.js', '', '', true);
+    wp_enqueue_script('sitmd', SITMD_PLUGIN_PATH . 'assets/core.js', 'jquery', filemtime( SITMD_PLUGIN_PATH . 'assets/core.js' ), true);
 } );
 
 // Register Meta Box
 add_action( 'add_meta_boxes', function():void {
 
-	add_meta_box(
-		'sit_special_dates', // $id
-		'Datumy', // $title
-		'j3w_show_special_dates_meta_box', // $callback
-		'events', // $screen
-		'side', // $context
-		'high' // $priority
-	);
+    add_meta_box(
+        'sit_special_dates', // $id
+        'Datumy', // $title
+        'j3w_show_special_dates_meta_box', // $callback
+        'events', // $screen
+        'side', // $context
+        'high' // $priority
+    );
 
 } );
 
-// Display fields
+// Display dates on admin page
 function j3w_show_special_dates_meta_box():void {
 
-	global $post;
+    $dates = sitmd_get_dates();
+    if ( $dates ) {
+        $dates = sitmd_sort_dates( $dates );
+    }
 
-	$sitmd_from = get_post_meta( $post->ID, 'sitmd_from', true );
-	$sitmd_to = get_post_meta( $post->ID, 'sitmd_to', true );
+    $dates_string = implode( ',', $dates );
 
-	$sitmd_other = get_post_meta( $post->ID, 'sitmd_other', true );
-	// Array to template
-	if ( $sitmd_other != '' ) {
-		$sitmd_other_sorted = sitmd_sort_dates( $sitmd_other );
-		$sitmd_other_dates = explode( ",", $sitmd_other_sorted );
-	}
-	else {
-		$sitmd_other_dates = []; // Empty array
-	}
-
-	require_once __DIR__ . "/views/meta-box.php";
-
+    require_once __DIR__ . "/views/meta-box.php";
 }
 
 // Save fields
 add_action( 'save_post', function( $post_id ) {
 
-	// verify nonce
-	if ( !wp_verify_nonce( $_POST['sit_special_dates_nonce'], basename( SITMD_PLUGIN_PATH ) ) ) {
-		return $post_id;
-	}
-	// Tohle asi nefugnuje nebo to nechapu
-	// check autosave
-	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-		return $post_id;
-	}
-	// check permissions
-	if ( 'events' === $_POST['post_type'] ) {
-		if ( !current_user_can( 'edit_page', $post_id ) ) {
-			return $post_id;
-		} elseif ( !current_user_can( 'edit_post', $post_id ) ) {
-			return $post_id;
-		}
-	}
+    // verify nonce
+    if ( !wp_verify_nonce( $_POST['sit_special_dates_nonce'], basename( SITMD_PLUGIN_PATH ) ) ) {
+        return $post_id;
+    }
+    // Tohle asi nefugnuje nebo to nechapu
+    // check autosave
+    if ( wp_is_post_autosave( $post_id ) ) {
+        return $post_id;
+    }
+    // check permissions
+    if ( 'events' === $_POST['post_type'] ) {
+        if ( !current_user_can( 'edit_page', $post_id ) ) {
+            return $post_id;
+        } elseif ( !current_user_can( 'edit_post', $post_id ) ) {
+            return $post_id;
+        }
+    }
 
-	$old_from = get_post_meta( $post_id, 'sitmd_from', true );
-	$new_from = $_POST['sitmd_from'];
+    $old_dates = sitmd_get_dates();
+    $new_dates = $_POST['sitmd_dates'];
 
-	if ( $new_from && $new_from !== $old_from ) {
-		update_post_meta( $post_id, 'sitmd_from', $new_from );
-	} elseif ( '' === $new_from && $old_from ) {
-		delete_post_meta( $post_id, 'sitmd_from', $old_from );
-	}
+    if ( $new_dates && $new_dates != $old_dates ) {
+        sitmd_update_dates( $new_dates );
+    }
+    elseif ( '' === $new_dates && $old_dates ) {
+        // Delete?
+    }
 
-	$old_to = get_post_meta( $post_id, 'sitmd_to', true );
-	$new_to = $_POST['sitmd_to'];
-
-	if ( $new_to && $new_to !== $old_to ) {
-		update_post_meta( $post_id, 'sitmd_to', $new_to );
-	} elseif ( '' === $new_to && $old_to ) {
-		delete_post_meta( $post_id, 'sitmd_to', $old_to );
-	}
-
-	$old_other = get_post_meta( $post_id, 'sitmd_other', true );
-	$new_other = sitmd_sort_dates( (string)$_POST['sitmd_other'] );
-
-	if ( $new_other && $new_other !== $old_other ) {
-		update_post_meta( $post_id, 'sitmd_other', $new_other );
-	} elseif ( '' === $new_other && $old_other ) {
-		delete_post_meta( $post_id, 'sitmd_other', $old_other );
-	}
-
+    return $post_id;
 } );
 
-function sitmd_sort_dates( string $dates ):string {
+function sitmd_sort_dates( array $dates ):array {
 
-	if ( $dates != '' ) {
-		// Cretae array
-		$dates_arr = explode( ",", $dates );
+    $d = array_map(
+        function ( string $date_string ) {
+            return new \DateTimeImmutable( $date_string );
+        },
+        $dates
+    );
+    // Sort
+    sort( $d ); // Use rsort() for descending order
+    // Format
+    return array_map(
+        function ( \DateTimeImmutable $date ) {
+            return $date->format( "Y-m-d H:i" );
+        },
+        $d
+    );
+}
 
-		$dates = array_map(
-			function ( string $dateString ) {
-				return new \DateTimeImmutable( $dateString );
-			},
-			$dates_arr
-		);
-		// Sort
-		sort( $dates ); // Use rsort() for descending order
-		// Format
-		$dates_arr = array_map(
-			function ( \DateTimeImmutable $date ) {
-				return $date->format( "Y-m-d" );
-			},
-			$dates
-		);
+function sitmd_get_dates():array {
 
-		return implode( ",", $dates_arr );
-	}
+    global $post, $wpdb;
 
-	return $dates;
+    $dates = [];
 
+    $result = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}sit_multidates WHERE post_id = %s",
+            $post->ID
+        )
+    );
+
+    if ( $result ) {
+        foreach ( $result as $row ) {
+            $dates[] = $row->date_time;
+        }
+    }
+
+    return $dates;
+}
+
+function sitmd_update_dates( string $dates_string ):void {
+
+    global $post, $wpdb;
+
+    $table_name = $wpdb->prefix . "sit_multidates";
+
+    $dates = explode( ',', $dates_string );
+
+    $wpdb->query(
+        $wpdb->prepare(
+            "DELETE FROM {$wpdb->prefix}sit_multidates WHERE post_id = %s",
+            $post->ID
+        )
+    );
+
+    if ( $dates ) {
+        foreach ( $dates as $date ) {
+            $wpdb->insert( $table_name, [ "post_id" => $post->ID, "date_time" => $date ] );
+        }
+    }
 }
