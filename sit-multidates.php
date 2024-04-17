@@ -3,7 +3,7 @@
 Plugin Name: SIT Special Multi Dates
 Plugin URI:
 Description: Měl by být aktivní ACF plugin
-Version: 1.0.8
+Version: 1.0.9
 Author: Jaroslav Dvorak
 Author URI:
 License: GPLv2 or later
@@ -78,6 +78,8 @@ add_action( 'add_meta_boxes', function():void {
 // Display dates on admin page
 function j3w_show_special_dates_meta_box():void {
 
+    global $post;
+
     $dates = sitmd_get_dates();
     if ( $dates ) {
         $dates = sitmd_sort_dates( $dates );
@@ -85,11 +87,15 @@ function j3w_show_special_dates_meta_box():void {
 
     $dates_string = implode( ',', $dates );
 
+    $sitmd_fromto_only = get_post_meta( $post->ID, 'sitmd_fromto_only', true );
+
     require_once __DIR__ . "/views/meta-box.php";
 }
 
 // Save fields
 add_action( 'save_post', function( $post_id ) {
+
+    global $post;
 
     // verify nonce
     if ( !wp_verify_nonce( $_POST['sit_special_dates_nonce'], basename( SITMD_PLUGIN_PATH ) ) ) {
@@ -107,6 +113,15 @@ add_action( 'save_post', function( $post_id ) {
         } elseif ( !current_user_can( 'edit_post', $post_id ) ) {
             return $post_id;
         }
+    }
+
+    $old_sitmd_fromto_only = get_post_meta( $post->ID, 'sitmd_fromto_only', true );
+    $new_sitmd_fromto_only = $_POST['sitmd_fromto_only'];
+
+    if ( $new_sitmd_fromto_only && $new_sitmd_fromto_only !== $old_sitmd_fromto_only) {
+        update_post_meta( $post_id, 'sitmd_fromto_only', $new_sitmd_fromto_only );
+    } elseif ( '' == $new_sitmd_fromto_only && $old_sitmd_fromto_only ) {
+        delete_post_meta( $post_id, 'sitmd_fromto_only', $old_sitmd_fromto_only );
     }
 
     $old_dates = sitmd_get_dates();
@@ -169,8 +184,6 @@ function sitmd_update_dates( string $dates_string ):void {
 
     $table_name = $wpdb->prefix . "sit_multidates";
 
-    $dates = explode( ',', $dates_string );
-
     $wpdb->query(
         $wpdb->prepare(
             "DELETE FROM {$wpdb->prefix}sit_multidates WHERE post_id = %s",
@@ -178,9 +191,14 @@ function sitmd_update_dates( string $dates_string ):void {
         )
     );
 
+    $sitmd_fromto_only = get_post_meta( $post->ID, 'sitmd_fromto_only', true );
+    $ft_only = $sitmd_fromto_only == 1 ? 1 : 0;
+
+    $dates = explode( ',', $dates_string );
+
     if ( $dates ) {
         foreach ( $dates as $date ) {
-            $wpdb->insert( $table_name, [ "post_id" => $post->ID, "date_time" => $date ] );
+            $wpdb->insert( $table_name, [ "post_id" => $post->ID, "date_time" => $date, "fromto_only" => $ft_only ] );
         }
     }
 }

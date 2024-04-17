@@ -18,6 +18,10 @@
     <div class="sitmd-add-wrapper sitmd-sortable-filter-js">
         <div id="sitmd-add-js" class="sitmd-add"><span>Add</span></div>
     </div>
+    <div class="sitmd-checkbox">
+        <input type="checkbox" name="sitmd_fromto_only" id="sitmd_fromto_only" value="1" <?php echo $sitmd_fromto_only == '1' ? 'checked' : ''; ?>>
+        <label for="sitmd_fromto_only"><b>Pouze jako datumy Od / Do</b></label>
+    </div>
     <template id="sitmd-sortable-item-tpl-js">
         <div class="sitmd-sortable__item sitmd-sortable-item-js">
             <div class="acf-input sitmd-sortable__handle sitmd-sortable-handle-js">
@@ -26,8 +30,8 @@
             </div>
         </div>
     </template>
-    <div class="acf-label" style="margin-top: 14px;">
-        <label>Pokud chcete zadat jen datum od / do, stačí zadat dva datumy.</label>
+    <div style="margin-top: 14px;">
+        <label>Pokud chcete zadat jen datum od / do, stačí zadat dva datumy. Musíte ale zaškrtnout políčko.</label>
     </div>
 </div>
 <input type="hidden" name="sitmd_dates" id="sitmd-other-js" value="<?php echo $dates_string; ?>">
