@@ -3,7 +3,7 @@
 Plugin Name: SIT Special Multi Dates
 Plugin URI:
 Description: Měl by být aktivní ACF plugin
-Version: 1.0.9
+Version: 1.1.0
 Author: Jaroslav Dvorak
 Author URI:
 License: GPLv2 or later
