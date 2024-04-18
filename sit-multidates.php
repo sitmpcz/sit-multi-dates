@@ -56,9 +56,9 @@ if ( !defined('SITMD_PLUGIN_PATH') ) {
 
 // Vendor JS
 add_action( 'admin_enqueue_scripts', function() {
-    wp_enqueue_style( 'sitmd', SITMD_PLUGIN_PATH  . 'assets/main.css', [], filemtime( SITMD_PLUGIN_PATH  . 'assets/main.css' ) );
+    wp_enqueue_style( 'sitmd', SITMD_PLUGIN_PATH  . 'assets/main.css', [], filemtime( plugin_dir_path(__FILE__) . 'assets/main.css' ) );
     wp_enqueue_script('sitmd-vendor', SITMD_PLUGIN_PATH . 'assets/vendor.min.js', '', '', true);
-    wp_enqueue_script('sitmd', SITMD_PLUGIN_PATH . 'assets/core.js', 'jquery', filemtime( SITMD_PLUGIN_PATH . 'assets/core.js' ), true);
+    wp_enqueue_script('sitmd', SITMD_PLUGIN_PATH . 'assets/core.js', 'jquery', filemtime( plugin_dir_path(__FILE__) . 'assets/core.js' ), true);
 } );
 
 // Register Meta Box
