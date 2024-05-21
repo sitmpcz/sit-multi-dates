@@ -3,7 +3,7 @@
 Plugin Name: SIT Special Multi Dates
 Plugin URI:
 Description: Měl by být aktivní ACF plugin
-Version: 1.1.0
+Version: 1.1.1
 Author: Jaroslav Dvorak
 Author URI:
 License: GPLv2 or later
@@ -130,8 +130,8 @@ add_action( 'save_post', function( $post_id ) {
     if ( $new_dates && $new_dates != $old_dates ) {
         sitmd_update_dates( $new_dates );
     }
-    elseif ( '' === $new_dates && $old_dates ) {
-        // Delete?
+    elseif ( '' === $new_dates && empty( $old_dates ) ) {
+        sitmd_delete_dates();
     }
 
     return $post_id;
@@ -201,4 +201,20 @@ function sitmd_update_dates( string $dates_string ):void {
             $wpdb->insert( $table_name, [ "post_id" => $post->ID, "date_time" => $date, "fromto_only" => $ft_only ] );
         }
     }
+}
+
+function sitmd_delete_dates():void {
+
+    global $post, $wpdb;
+
+    // Smazeme vsechny datumy spojene s timto post_id
+    $wpdb->query(
+        $wpdb->prepare(
+            "DELETE FROM {$wpdb->prefix}sit_multidates WHERE post_id = %s",
+            $post->ID
+        )
+    );
+    // A smazeme i meta jestli jde o datumy OD/DO
+    delete_post_meta( $post->ID, 'sitmd_fromto_only', null );
+
 }
