@@ -25,7 +25,7 @@
     <template id="sitmd-sortable-item-tpl-js">
         <div class="sitmd-sortable__item sitmd-sortable-item-js">
             <div class="acf-input sitmd-sortable__handle sitmd-sortable-handle-js">
-                <input type="datetime-local" class="sitmd-other-dates-js input" value="">
+                <input type="datetime-local" class="sitmd-other-dates-js input" value="<?php echo date( "Y-m-d 00:00" ); ?>">
                 <div class="sitmd-remove sitmd-remove-js"><span>Remove</span></div>
             </div>
         </div>
