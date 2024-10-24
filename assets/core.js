@@ -46,10 +46,14 @@
 
         add: function() {
 
+            var self = this;
+
             var $sortable = $("#sitmd-sortable-js"),
                 $template = $($("#sitmd-sortable-item-tpl-js").prop( "content" )).clone();
 
             $sortable.append( $template );
+
+            self.changeDate( $template.find(".sitmd-other-dates-js") );
 
         },
 
