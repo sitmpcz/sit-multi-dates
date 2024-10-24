@@ -76,8 +76,9 @@
             var self = this;
 
             var values = $(".sitmd-other-dates-js").map( function() {
+                return self.parseAndFormatDate( this.value );
                 //return self.convertToDateTimeLocalString(this.value);
-                return this.value;
+                //return this.value;
             } ).get();
 
             self.$hiddenField.val( values.join(",") );
@@ -107,6 +108,21 @@
                     self.makeValue();
                 }
             } );
+
+        },
+
+        parseAndFormatDate: function( dateString ) {
+
+            const date = new Date(Date.parse( dateString ));
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
         },
 

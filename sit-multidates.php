@@ -37,6 +37,7 @@ if ( !function_exists('SitMultidatesPluginSetup' ) ) {
 		        date_id mediumint(9) NOT NULL AUTO_INCREMENT,
 		        post_id mediumint(9) NOT NULL,
                 date_time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+                fromto_only int(1) DEFAULT '0' NOT NULL,
                 PRIMARY KEY (date_id)
            	) $charset_collate;";
 
@@ -93,7 +94,7 @@ function j3w_show_special_dates_meta_box():void {
 }
 
 // Save fields
-add_action( 'save_post', function( $post_id ) {
+add_action( 'save_post_events', function( $post_id ) {
 
     global $post;
 
@@ -107,7 +108,9 @@ add_action( 'save_post', function( $post_id ) {
         return $post_id;
     }
     // check permissions
+    // Tohle tady nemusi byt pokud volame 'save_post_events'
     if ( 'events' === $_POST['post_type'] ) {
+        // Stacilo by to odsud
         if ( !current_user_can( 'edit_page', $post_id ) ) {
             return $post_id;
         } elseif ( !current_user_can( 'edit_post', $post_id ) ) {
