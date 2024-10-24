@@ -1,6 +1,6 @@
 'use strict';
 
-(function ($) {
+( function ($) {
 
     function SITMDCore() {
 
@@ -49,11 +49,12 @@
             var self = this;
 
             var $sortable = $("#sitmd-sortable-js"),
-                $template = $($("#sitmd-sortable-item-tpl-js").prop( "content" )).clone();
+                $template = $($("#sitmd-sortable-item-tpl-js").prop( "content" )).clone(),
+                $date = $template.find(".sitmd-other-dates-js");
 
             $sortable.append( $template );
 
-            self.changeDate( $template.find(".sitmd-other-dates-js") );
+            self.changeDate( $date );
 
         },
 
@@ -82,7 +83,7 @@
             var values = $(".sitmd-other-dates-js").map( function() {
                 return self.parseAndFormatDate( this.value );
                 //return self.convertToDateTimeLocalString(this.value);
-                //return this.value;
+                return this.value;
             } ).get();
 
             self.$hiddenField.val( values.join(",") );
@@ -96,7 +97,7 @@
             var v = self.$hiddenField.val(),
                 values = v.split( ',');
 
-            if ( typeof value !== undefined && values.indexOf( value ) >= 0 ) {
+            if ( typeof value !== undefined && values.includes( self.parseAndFormatDate( value ) ) === true ) {
                 alert("Takové datum tam už máme, zkuste jej změnit.");
             }
 
@@ -144,8 +145,8 @@
 
     }
 
-    $(document).ready(function () {
+    $( function () {
         new SITMDCore();
-    });
+    } );
 
-})(jQuery);
+} )(jQuery);
