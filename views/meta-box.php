@@ -6,7 +6,8 @@
                 ?>
                 <div class="sitmd-sortable__item sitmd-sortable-item-js">
                     <div class="acf-input sitmd-sortable__handle sitmd-sortable-handle-js">
-                        <input type="datetime-local" class="sitmd-other-dates-js input" value="<?php echo $date; ?>" required>
+                        <input type="datetime-local" class="sitmd-other-dates-js input" value="<?php echo $date['date']; ?>" required>
+                        <input type="number" class="sitmd-duration-js input" min="0" step="0.5" placeholder="hod" value="<?php echo $date['duration_hours']; ?>">
                         <div class="sitmd-remove sitmd-remove-js"><span>Remove</span></div>
                     </div>
                 </div>
@@ -26,12 +27,16 @@
         <div class="sitmd-sortable__item sitmd-sortable-item-js">
             <div class="acf-input sitmd-sortable__handle sitmd-sortable-handle-js">
                 <input type="datetime-local" class="sitmd-other-dates-js input" value="<?php echo date( "Y-m-d 00:00" ); ?>">
+                <input type="number" class="sitmd-duration-js input" min="0" step="0.5" placeholder="hod" value="">
                 <div class="sitmd-remove sitmd-remove-js"><span>Remove</span></div>
             </div>
         </div>
     </template>
     <div style="margin-top: 14px;">
         <label>Pokud chcete zadat jen datum od / do, stačí zadat dva datumy. Musíte ale zaškrtnout políčko.</label>
+    </div>
+    <div style="margin-top: 6px;">
+        <label>Pole „hod" = délka trvání v hodinách (např. 1.5). Prázdné = akce se zobrazuje do konce dne.</label>
     </div>
 </div>
 <input type="hidden" name="sitmd_dates" id="sitmd-other-js" value="<?php echo $dates_string; ?>">

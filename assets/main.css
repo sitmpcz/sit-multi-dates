@@ -7,6 +7,9 @@
     padding: 4px 0;
 }
 .sitmd-sortable__handle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding-left: 14px;
     padding-right: 30px;
     border-radius: 4px;
@@ -14,6 +17,16 @@
 .sitmd-sortable__handle input {
     position: relative;
     z-index: 2;
+    height: 32px;
+    box-sizing: border-box;
+}
+.sitmd-sortable__handle .sitmd-other-dates-js {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.sitmd-sortable__handle .sitmd-duration-js {
+    flex: 0 0 52px;
+    width: 52px;
 }
 .sitmd-sortable__handle::before {
     content: "";

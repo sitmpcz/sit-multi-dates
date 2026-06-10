@@ -3,7 +3,7 @@
 Plugin Name: SIT Special Multi Dates
 Plugin URI:
 Description: Měl by být aktivní ACF plugin
-Version: 1.1.1
+Version: 1.2.0
 Author: Jaroslav Dvorak
 Author URI:
 License: GPLv2 or later
@@ -14,6 +14,11 @@ Domain Path: /lang/
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
+}
+
+// Verze databazoveho schematu (pro migrace)
+if ( !defined( 'SITMD_DB_VERSION' ) ) {
+    define( 'SITMD_DB_VERSION', '1.2.0' );
 }
 
 // Setup
@@ -37,6 +42,7 @@ if ( !function_exists('SitMultidatesPluginSetup' ) ) {
 		        date_id mediumint(9) NOT NULL AUTO_INCREMENT,
 		        post_id mediumint(9) NOT NULL,
                 date_time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+                duration int(11) DEFAULT '0' NOT NULL,
                 fromto_only int(1) DEFAULT '0' NOT NULL,
                 PRIMARY KEY (date_id)
            	) $charset_collate;";
@@ -44,7 +50,17 @@ if ( !function_exists('SitMultidatesPluginSetup' ) ) {
             require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
             dbDelta( $sql );
 
+        } else {
+
+            // Migrace: pridat sloupec duration (delka trvani v minutach), pokud chybi
+            $has_duration = $wpdb->get_results( "SHOW COLUMNS FROM {$table_name} LIKE 'duration'" );
+            if ( empty( $has_duration ) ) {
+                $wpdb->query( "ALTER TABLE {$table_name} ADD COLUMN duration int(11) DEFAULT 0 NOT NULL AFTER date_time" );
+            }
+
         }
+
+        update_option( 'sitmd_db_version', SITMD_DB_VERSION );
 
     }
 
@@ -55,11 +71,18 @@ if ( !defined('SITMD_PLUGIN_PATH') ) {
     define( 'SITMD_PLUGIN_PATH', plugin_dir_url( __FILE__ ) );
 }
 
-// Vendor JS
-add_action( 'admin_enqueue_scripts', function() {
+// Vendor JS - jen na editaci akce (jinde metabox neexistuje)
+add_action( 'admin_enqueue_scripts', function( $hook ) {
+    if ( !in_array( $hook, [ 'post.php', 'post-new.php' ], true ) ) {
+        return;
+    }
+    $screen = get_current_screen();
+    if ( !$screen || $screen->post_type !== 'events' ) {
+        return;
+    }
     wp_enqueue_style( 'sitmd', SITMD_PLUGIN_PATH  . 'assets/main.css', [], filemtime( plugin_dir_path(__FILE__) . 'assets/main.css' ) );
-    wp_enqueue_script('sitmd-vendor', SITMD_PLUGIN_PATH . 'assets/vendor.min.js', '', '', true);
-    wp_enqueue_script('sitmd', SITMD_PLUGIN_PATH . 'assets/core.js', 'jquery', filemtime( plugin_dir_path(__FILE__) . 'assets/core.js' ), true);
+    wp_enqueue_script('sitmd-vendor', SITMD_PLUGIN_PATH . 'assets/vendor.min.js', [], '', true);
+    wp_enqueue_script('sitmd', SITMD_PLUGIN_PATH . 'assets/core.js', [ 'sitmd-vendor' ], filemtime( plugin_dir_path(__FILE__) . 'assets/core.js' ), true);
 } );
 
 // Register Meta Box
@@ -86,7 +109,14 @@ function j3w_show_special_dates_meta_box():void {
         $dates = sitmd_sort_dates( $dates );
     }
 
-    $dates_string = implode( ',', $dates );
+    // Skryte pole serializujeme jako "datum|hodiny,datum|hodiny,..." (stejny format jako produkuje core.js)
+    $pairs = array_map(
+        function ( array $d ):string {
+            return $d['date'] . '|' . ( $d['duration_hours'] === '' ? '0' : $d['duration_hours'] );
+        },
+        $dates
+    );
+    $dates_string = implode( ',', $pairs );
 
     $sitmd_fromto_only = get_post_meta( $post->ID, 'sitmd_fromto_only', true );
 
@@ -142,20 +172,25 @@ add_action( 'save_post_events', function( $post_id ) {
 
 function sitmd_sort_dates( array $dates ):array {
 
-    $d = array_map(
-        function ( string $date_string ) {
-            return new \DateTimeImmutable( $date_string );
+    // Seradime podle data ($dates jsou pole ['date_time'=>..., 'duration'=>minuty])
+    usort(
+        $dates,
+        function ( array $a, array $b ):int {
+            return strcmp( $a['date_time'], $b['date_time'] );
+        }
+    );
+
+    // Naformatujeme pro vystup: datum pro input, delka v hodinach (prazdne = nezadano)
+    return array_map(
+        function ( array $row ):array {
+            $date    = new \DateTimeImmutable( $row['date_time'] );
+            $minutes = (int) $row['duration'];
+            return [
+                'date'           => $date->format( "Y-m-d H:i" ),
+                'duration_hours' => $minutes > 0 ? rtrim( rtrim( number_format( $minutes / 60, 2, '.', '' ), '0' ), '.' ) : '',
+            ];
         },
         $dates
-    );
-    // Sort
-    sort( $d ); // Use rsort() for descending order
-    // Format
-    return array_map(
-        function ( \DateTimeImmutable $date ) {
-            return $date->format( "Y-m-d H:i" );
-        },
-        $d
     );
 }
 
@@ -174,7 +209,10 @@ function sitmd_get_dates():array {
 
     if ( $result ) {
         foreach ( $result as $row ) {
-            $dates[] = $row->date_time;
+            $dates[] = [
+                'date_time' => $row->date_time,
+                'duration'  => isset( $row->duration ) ? (int) $row->duration : 0,
+            ];
         }
     }
 
@@ -197,12 +235,23 @@ function sitmd_update_dates( string $dates_string ):void {
     $sitmd_fromto_only = get_post_meta( $post->ID, 'sitmd_fromto_only', true );
     $ft_only = $sitmd_fromto_only == 1 ? 1 : 0;
 
-    $dates = explode( ',', $dates_string );
+    // Polozky maji format "datum|hodiny" (hodiny mohou chybet u starych dat)
+    $items = explode( ',', $dates_string );
 
-    if ( $dates ) {
-        foreach ( $dates as $date ) {
-            $wpdb->insert( $table_name, [ "post_id" => $post->ID, "date_time" => $date, "fromto_only" => $ft_only ] );
+    foreach ( $items as $item ) {
+        if ( $item === '' ) {
+            continue;
         }
+        $parts   = explode( '|', $item );
+        $date    = $parts[0];
+        $hours   = isset( $parts[1] ) ? (float) str_replace( ',', '.', $parts[1] ) : 0;
+        $minutes = (int) round( $hours * 60 );
+        $wpdb->insert( $table_name, [
+            "post_id"     => $post->ID,
+            "date_time"   => $date,
+            "duration"    => $minutes,
+            "fromto_only" => $ft_only,
+        ] );
     }
 }
 

@@ -1,152 +1,143 @@
 'use strict';
 
-( function ($) {
+class SITMDCore {
 
-    function SITMDCore() {
+    constructor() {
 
-        var self = this;
+        this.hiddenField = document.getElementById( "sitmd-other-js" );
+        this.sortableEl = document.getElementById( "sitmd-sortable-js" );
 
-        self.$window = $(window);
-        self.$document = $(document);
-        self.$body = $("body");
-        self.$hiddenField = $("#sitmd-other-js");
+        // Metabox na strance neni - nic nedelame
+        if ( !this.sortableEl || !this.hiddenField ) {
+            return;
+        }
 
-        self.init();
+        this.init();
 
     }
 
-    SITMDCore.prototype = {
+    init() {
 
-        init: function () {
+        this.bind();
+        this.sortable();
 
-            var self = this;
+    }
 
-            self.bind();
-            self.sortable();
+    bind() {
 
-        },
+        const addBtn = document.getElementById( "sitmd-add-js" );
+        if ( addBtn ) {
+            addBtn.addEventListener( "click", () => this.add() );
+        }
 
-        bind: function() {
+        // Delegace - radky se pridavaji dynamicky
+        document.addEventListener( "change", ( e ) => {
+            if ( e.target.classList.contains( "sitmd-other-dates-js" ) ) {
+                this.changeDate( e.target );
+            } else if ( e.target.classList.contains( "sitmd-duration-js" ) ) {
+                this.makeValue();
+            }
+        } );
 
-            var self = this;
+        document.addEventListener( "click", ( e ) => {
+            const removeBtn = e.target.closest( ".sitmd-remove-js" );
+            if ( removeBtn ) {
+                this.remove( removeBtn );
+            }
+        } );
 
-            $("#sitmd-add-js").on( "click", function() {
-                self.add();
-            } );
+    }
 
-            self.$body.on( "change", ".sitmd-other-dates-js", function() {
-                self.changeDate( $(this) );
-            } );
+    add() {
 
-            self.$body.on( "click", ".sitmd-remove-js", function() {
-                self.remove( $(this) );
-            } );
+        const tpl = document.getElementById( "sitmd-sortable-item-tpl-js" );
+        const clone = document.importNode( tpl.content, true );
+        const dateInput = clone.querySelector( ".sitmd-other-dates-js" );
 
-        },
+        this.sortableEl.appendChild( clone );
 
-        add: function() {
+        this.changeDate( dateInput );
 
-            var self = this;
+    }
 
-            var $sortable = $("#sitmd-sortable-js"),
-                $template = $($("#sitmd-sortable-item-tpl-js").prop( "content" )).clone(),
-                $date = $template.find(".sitmd-other-dates-js");
+    remove( el ) {
 
-            $sortable.append( $template );
+        const item = el.closest( ".sitmd-sortable-item-js" );
+        if ( item ) {
+            item.remove();
+        }
 
-            self.changeDate( $date );
+        this.makeValue();
 
-        },
+    }
 
-        remove: function( $this ) {
+    changeDate( el ) {
 
-            var self = this;
+        this.checkDuplicate( el.value );
+        this.makeValue();
 
-            $this.closest(".sitmd-sortable-item-js").remove();
+    }
 
-            self.makeValue();
+    makeValue() {
 
-        },
+        // Kazdy radek = datum + delka v hodinach, serializujeme jako "datum|hodiny"
+        const values = [];
+        const items = document.querySelectorAll( ".sitmd-sortable-item-js" );
 
-        changeDate: function( $this ) {
+        items.forEach( ( item ) => {
+            const dateEl = item.querySelector( ".sitmd-other-dates-js" );
+            const durationEl = item.querySelector( ".sitmd-duration-js" );
 
-            var self = this;
-
-            self.checkDuplicate( $this.val() );
-            self.makeValue();
-        },
-
-        makeValue: function() {
-
-            var self = this;
-
-            var values = $(".sitmd-other-dates-js").map( function() {
-                return self.parseAndFormatDate( this.value );
-                //return self.convertToDateTimeLocalString(this.value);
-                return this.value;
-            } ).get();
-
-            self.$hiddenField.val( values.join(",") );
-
-        },
-
-        checkDuplicate: function( value ) {
-
-            var self = this;
-
-            var v = self.$hiddenField.val(),
-                values = v.split( ',');
-
-            if ( typeof value !== undefined && values.includes( self.parseAndFormatDate( value ) ) === true ) {
-                alert("Takové datum tam už máme, zkuste jej změnit.");
+            const date = dateEl ? dateEl.value : "";
+            if ( !date ) {
+                return;
             }
 
-        },
+            const hours = durationEl ? durationEl.value : "";
+            const h = ( hours === "" || hours === undefined ) ? "0" : hours;
 
-        sortable: function () {
+            values.push( this.parseAndFormatDate( date ) + "|" + h );
+        } );
 
-            var self = this;
+        this.hiddenField.value = values.join( "," );
 
-            self.sortable = new Sortable( $("#sitmd-sortable-js")[0], {
-                filter: ".sitmd-sortable-filter-js",
-                onSort: function() {
-                    self.makeValue();
-                }
-            } );
+    }
 
-        },
+    checkDuplicate( value ) {
 
-        parseAndFormatDate: function( dateString ) {
+        // Polozky jsou "datum|hodiny", pro kontrolu duplicit nas zajima jen datum
+        const values = this.hiddenField.value.split( "," ).map( ( item ) => item.split( "|" )[0] );
 
-            const date = new Date(Date.parse( dateString ));
-
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-
-            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-
-        },
-
-        convertToDateTimeLocalString: function(date) {
-
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, "0");
-            const day = date.getDate().toString().padStart(2, "0");
-            const hours = date.getHours().toString().padStart(2, "0");
-            const minutes = date.getMinutes().toString().padStart(2, "0");
-
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
-
+        if ( typeof value !== undefined && values.indexOf( this.parseAndFormatDate( value ) ) !== -1 ) {
+            alert( "Takové datum tam už máme, zkuste jej změnit." );
         }
 
     }
 
-    $( function () {
-        new SITMDCore();
-    } );
+    sortable() {
 
-} )(jQuery);
+        this.sortableInstance = new Sortable( this.sortableEl, {
+            filter: ".sitmd-sortable-filter-js",
+            onSort: () => this.makeValue()
+        } );
+
+    }
+
+    parseAndFormatDate( dateString ) {
+
+        const date = new Date( Date.parse( dateString ) );
+
+        const year = date.getFullYear();
+        const month = String( date.getMonth() + 1 ).padStart( 2, '0' );
+        const day = String( date.getDate() ).padStart( 2, '0' );
+        const hours = String( date.getHours() ).padStart( 2, '0' );
+        const minutes = String( date.getMinutes() ).padStart( 2, '0' );
+        const seconds = String( date.getSeconds() ).padStart( 2, '0' );
+
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+    }
+
+}
+
+new SITMDCore();
