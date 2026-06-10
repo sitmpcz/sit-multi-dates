@@ -3,7 +3,7 @@
 Plugin Name: SIT Special Multi Dates
 Plugin URI:
 Description: Měl by být aktivní ACF plugin
-Version: 1.2.0
+Version: 1.2.1
 Author: Jaroslav Dvorak
 Author URI:
 License: GPLv2 or later
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Verze databazoveho schematu (pro migrace)
 if ( !defined( 'SITMD_DB_VERSION' ) ) {
-    define( 'SITMD_DB_VERSION', '1.2.0' );
+    define( 'SITMD_DB_VERSION', '1.2.1' );
 }
 
 // Setup
@@ -44,7 +44,9 @@ if ( !function_exists('SitMultidatesPluginSetup' ) ) {
                 date_time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
                 duration int(11) DEFAULT '0' NOT NULL,
                 fromto_only int(1) DEFAULT '0' NOT NULL,
-                PRIMARY KEY (date_id)
+                PRIMARY KEY (date_id),
+                KEY post_id (post_id),
+                KEY fromto_post_date (fromto_only, post_id, date_time)
            	) $charset_collate;";
 
             require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
@@ -56,6 +58,14 @@ if ( !function_exists('SitMultidatesPluginSetup' ) ) {
             $has_duration = $wpdb->get_results( "SHOW COLUMNS FROM {$table_name} LIKE 'duration'" );
             if ( empty( $has_duration ) ) {
                 $wpdb->query( "ALTER TABLE {$table_name} ADD COLUMN duration int(11) DEFAULT 0 NOT NULL AFTER date_time" );
+            }
+
+            // Migrace: indexy pro vypisove dotazy (tabulka casem roste)
+            if ( empty( $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = 'post_id'" ) ) ) {
+                $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX post_id (post_id)" );
+            }
+            if ( empty( $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = 'fromto_post_date'" ) ) ) {
+                $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX fromto_post_date (fromto_only, post_id, date_time)" );
             }
 
         }
